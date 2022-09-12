@@ -13,7 +13,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         // The backend URL of the authentication endoints.
         authUrl: "/api/auth",
         // Set this to your domain to prevent signature malleability attacks.
-        domain: "http://localhost:3000",
+        domain: "example.com",
         // The redirect URL after a successful login.
         loginRedirect: "/",
       }}

@@ -6,7 +6,7 @@ export default async function login(req: NextApiRequest, res: NextApiResponse) {
   // Grab the login payload the user sent us with their request.
   const loginPayload = req.body.payload;
   // Set this to your domain to prevent signature malleability attacks.
-  const domain = "http://localhost:3000";
+  const domain = "example.com";
 
   const sdk = ThirdwebSDK.fromPrivateKey(
     // Using environment variables to secure your private key is a security vulnerability.
