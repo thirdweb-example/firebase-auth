@@ -38,10 +38,12 @@ export default function Login() {
 
         // If this is a new user, we create a new document in the database.
         const usersRef = doc(db, "users", user.uid!);
-        if (!usersRef) {
-          // User now has permission to update their own document outlined in the Firestore rules.
-          setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
-        }
+        getDoc(usersRef).then((doc) => {
+          if (!doc.exists()) {
+            // User now has permission to update their own document outlined in the Firestore rules.
+            setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
+          }
+        });               
       })
       .catch((error) => {
         console.error(error);
