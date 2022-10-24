@@ -2,7 +2,7 @@ import { ConnectWallet, useAddress, useSDK } from "@thirdweb-dev/react";
 import { signInWithCustomToken, signOut } from "firebase/auth";
 import React from "react";
 import initializeFirebaseClient from "../lib/initFirebase";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { getDoc, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import styles from "../styles/Home.module.css";
 import useFirebaseUser from "../lib/useFirebaseUser";
 import useFirebaseDocument from "../lib/useFirebaseUserDocument";
@@ -38,10 +38,12 @@ export default function Login() {
 
         // If this is a new user, we create a new document in the database.
         const usersRef = doc(db, "users", user.uid!);
-        if (!usersRef) {
-          // User now has permission to update their own document outlined in the Firestore rules.
-          setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
-        }
+        getDoc(usersRef).then((doc) => {
+          if (!doc.exists()) {
+            // User now has permission to update their own document outlined in the Firestore rules.
+            setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
+          }
+        });               
       })
       .catch((error) => {
         console.error(error);
