@@ -11,11 +11,9 @@ function MyApp({ Component, pageProps }: AppProps) {
       desiredChainId={activeChainId}
       authConfig={{
         // The backend URL of the authentication endoints.
-        authUrl: "/api/auth",
+        authUrl: "/api/thirdweb-auth",
         // Set this to your domain to prevent signature malleability attacks.
-        domain: "example.com",
-        // The redirect URL after a successful login.
-        loginRedirect: "/",
+        domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN!,
       }}
     >
       <Component {...pageProps} />

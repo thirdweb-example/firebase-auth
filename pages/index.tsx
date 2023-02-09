@@ -15,16 +15,9 @@ export default function Login() {
   const { document, isLoading: loadingDocument } = useFirebaseDocument();
 
   async function signIn() {
-    // Use the same address as the one specified in _app.tsx.
-    const payload = await sdk?.auth.login("example.com");
-
-    // Make a request to the API with the payload.
+    // Make a request to the API
     const res = await fetch("/api/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ payload }),
     });
 
     // Get the returned JWT token to use it to sign in with
@@ -43,7 +36,7 @@ export default function Login() {
             // User now has permission to update their own document outlined in the Firestore rules.
             setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
           }
-        });               
+        });
       })
       .catch((error) => {
         console.error(error);
