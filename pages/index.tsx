@@ -1,4 +1,9 @@
-import { ConnectWallet, useAddress, useSDK } from "@thirdweb-dev/react";
+import {
+  ConnectWallet,
+  useAddress,
+  useLogin,
+  useSDK,
+} from "@thirdweb-dev/react";
 import { signInWithCustomToken, signOut } from "firebase/auth";
 import React from "react";
 import initializeFirebaseClient from "../lib/initFirebase";
@@ -9,10 +14,10 @@ import useFirebaseDocument from "../lib/useFirebaseUserDocument";
 
 export default function Login() {
   const address = useAddress();
-  const sdk = useSDK();
   const { auth, db } = initializeFirebaseClient();
   const { user, isLoading: loadingAuth } = useFirebaseUser();
   const { document, isLoading: loadingDocument } = useFirebaseDocument();
+  const login = useLogin();
 
   async function signIn() {
     // Make a request to the API
@@ -72,7 +77,13 @@ export default function Login() {
         {address ? (
           <div>
             {!user ? (
-              <button onClick={() => signIn()} className={styles.mainButton}>
+              <button
+                onClick={async () => {
+                  await login.login();
+                  signIn();
+                }}
+                className={styles.mainButton}
+              >
                 Sign in with Ethereum
               </button>
             ) : (
