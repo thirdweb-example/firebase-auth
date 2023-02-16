@@ -53,6 +53,8 @@ FIREBASE_PRIVATE_KEY_ID=<service-account-private-key-id>
 FIREBASE_CLIENT_EMAIL=<service-account-client-email>
 ```
 
+Most of the above environment variables can be found in the settings page of your Firebase project (after adding a Web app to your project), or in the service role JSON file you created and downloaded earlier.
+
 Create a new directory called `lib` and create two helper scripts to initialize Firebase in the browser and server:
 
 - [lib/initFirebase.ts](https://github.com/thirdweb-example/firebase-auth/blob/main/lib/initFirebase.ts)
