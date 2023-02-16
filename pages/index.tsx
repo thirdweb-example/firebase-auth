@@ -1,9 +1,4 @@
-import {
-  ConnectWallet,
-  useAddress,
-  useAuth,
-  useSDK,
-} from "@thirdweb-dev/react";
+import { ConnectWallet, useAddress, useAuth } from "@thirdweb-dev/react";
 import { signInWithCustomToken, signOut } from "firebase/auth";
 import React from "react";
 import initializeFirebaseClient from "../lib/initFirebase";
