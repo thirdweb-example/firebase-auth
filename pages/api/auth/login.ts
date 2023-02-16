@@ -1,29 +1,17 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { ThirdwebSDK } from "@thirdweb-dev/sdk";
+import { verifyLogin } from "@thirdweb-dev/auth/evm";
 import initializeFirebaseServer from "../../../lib/initFirebaseAdmin";
 
 export default async function login(req: NextApiRequest, res: NextApiResponse) {
   // Grab the login payload the user sent us with their request.
-  const loginPayload = req.body.payload;
-  // Set this to your domain to prevent signature malleability attacks.
-  const domain = "example.com";
+  const payload = req.body.payload;
 
-  const sdk = ThirdwebSDK.fromPrivateKey(
-    // Using environment variables to secure your private key is a security vulnerability.
-    // Learn how to store your private key securely:
-    // https://portal.thirdweb.com/sdk/set-up-the-sdk/securing-your-private-key
-    process.env.ADMIN_PRIVATE_KEY!,
-    "mumbai" // configure this to your network
+  const { address, error } = await verifyLogin(
+    process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN as string,
+    payload
   );
-
-  let address;
-  try {
-    // Verify the address of the logged in client-side wallet by validating the provided client-side login request.
-    address = sdk.auth.verify(domain, loginPayload);
-  } catch (err) {
-    // If the login request is invalid, return an error.
-    console.error(err);
-    return res.status(401).send("Unauthorized");
+  if (!address) {
+    return res.status(401).json({ error });
   }
 
   // Initialize the Firebase Admin SDK.

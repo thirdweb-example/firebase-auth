@@ -18,6 +18,7 @@ This template shows you can use thirdweb Auth as a custom authentication provide
 - [Create a Firebase project](https://firebase.google.com/docs/web/setup#create-project)
 - [Register your Firebase app](https://firebase.google.com/docs/web/setup#register-app)
 - [Create and export a service account as a JSON file](https://firebase.google.com/docs/admin/setup#initialize-sdk)
+- Make sure to enable Firebase Authentication as we'll be using the [Custom Authentication](https://firebase.google.com/docs/auth/web/custom-auth?hl=en&authuser=0) method and create a [Cloud Firestore](https://firebase.google.com/docs/firestore/quickstart?hl=en&authuser=0) database within your project
 
 ## Set Up
 
@@ -39,7 +40,7 @@ We'll use environment variables to store our Firebase configuration.
 
 Create a `.env.local` file in the root of your project and add the corresponding values from your Firebase project:
 
-```bash
+```
 NEXT_PUBLIC_API_KEY=<firebase-app-api-key>
 NEXT_PUBLIC_AUTH_DOMAIN=<firebase-app-auth-domain>
 NEXT_PUBLIC_PROJECT_ID=<firebase-app-project-id>
@@ -59,19 +60,15 @@ Create a new directory called `lib` and create two helper scripts to initialize 
 
 Now we have an easy way to access Firebase Auth and Firestore in both client and server environments!
 
-### Wallet Private Key
+### Configure thirdweb Auth
 
-We use our wallet's private key to instantiate the SDK on the server-side.
+Finally, to configure thirdweb Auth, we just need to add the `NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN` evironment variable to the `.env.local` file as follows:
 
-We recommend using a [Secret Manager to secure your private key](https://portal.thirdweb.com/sdk/set-up-the-sdk/securing-your-private-key).
-
-**WARNING**: In this guide, we'll use environment variables for simplicity; but this is a security vulnerability and not recommended best practice for production environments.
-
-Inside our `.env.local` file, add an environment variable to store your [wallet's private key](https://blog.thirdweb.com/guides/create-a-metamask-wallet/):
-
-```bash
-ADMIN_PRIVATE_KEY=<wallet-private-key>
 ```
+NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN=<thirdweb-auth-domain>
+```
+
+The `NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN` is used to prevent phishing attacks - and is usually set to the domain of your project like `example.com`. You can read more about it in the [thirdweb Auth Documentation](https://portal.thirdweb.com/auth/how-auth-works/sign-in-with-wallet#domain).
 
 ### ThirdwebProvider
 
@@ -89,12 +86,8 @@ function MyApp({ Component, pageProps }: AppProps) {
     <ThirdwebProvider
       desiredChainId={activeChainId}
       authConfig={{
-        // The backend URL of the authentication endoints.
-        authUrl: "/api/auth",
         // Set this to your domain to prevent signature malleability attacks.
-        domain: "example.com",
-        // The redirect URL after a successful login.
-        loginRedirect: "/",
+        domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN,
       }}
     >
       <Component {...pageProps} />
@@ -116,20 +109,20 @@ On the homepage (`pages/index.tsx`), we'll allow the user to connect their walle
 
 ```tsx title="pages/index.tsx"
 import React from "react";
-import { ConnectWallet, useAddress, useSDK } from "@thirdweb-dev/react";
+import { ConnectWallet, useAddress, useAuth } from "@thirdweb-dev/react";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { signInWithCustomToken } from "firebase/auth";
 import initializeFirebaseClient from "../lib/initFirebase";
 
 export default function Login() {
+  const thirdwebAuth = useAuth();
   const address = useAddress();
-  const sdk = useSDK();
   const { auth, db } = initializeFirebaseClient();
 
   return (
     <div>
       {address ? (
-        <button onClick={() => signIn()}>Sign in with Ethereum</button>
+        <button onClick={() => signIn()}>Sign in with Wallet</button>
       ) : (
         <ConnectWallet />
       )}
@@ -148,7 +141,7 @@ The `signIn` function:
 // Note: This function lives inside the Login component above.
 async function signIn() {
   // Use the same address as the one specified in _app.tsx.
-  const payload = await sdk?.auth.login("example.com");
+  const payload = await thirdwebAuth.login("example.com");
 
   // Make a request to the API with the payload.
   const res = await fetch("/api/auth/login", {
@@ -198,31 +191,19 @@ This API route is responsible for:
 
 ```ts title="pages/api/auth/login.ts"
 import { NextApiRequest, NextApiResponse } from "next";
-import { ThirdwebSDK } from "@thirdweb-dev/sdk";
+import { verifyLogin } from "@thirdweb-dev/auth/evm";
 import initializeFirebaseServer from "../../../lib/initFirebaseAdmin";
 
 export default async function login(req: NextApiRequest, res: NextApiResponse) {
   // Grab the login payload the user sent us with their request.
-  const loginPayload = req.body.payload;
-  // Set this to your domain to prevent signature malleability attacks.
-  const domain = "example.com";
+  const payload = req.body.payload;
 
-  const sdk = ThirdwebSDK.fromPrivateKey(
-    // Using environment variables to secure your private key is a security vulnerability.
-    // Learn how to store your private key securely:
-    // https://portal.thirdweb.com/sdk/set-up-the-sdk/securing-your-private-key
-    process.env.ADMIN_PRIVATE_KEY!,
-    "mumbai" // configure this to your network
+  const { address, error } = await verifyLogin(
+    process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN as string,
+    payload
   );
-
-  let address;
-  try {
-    // Verify the address of the logged in client-side wallet by validating the provided client-side login request.
-    address = sdk.auth.verify(domain, loginPayload);
-  } catch (err) {
-    // If the login request is invalid, return an error.
-    console.error(err);
-    return res.status(401).send("Unauthorized");
+  if (!address) {
+    return res.status(401).json({ error });
   }
 
   // Initialize the Firebase Admin SDK.
@@ -231,7 +212,7 @@ export default async function login(req: NextApiRequest, res: NextApiResponse) {
   // Generate a JWT token for the user to be used on the client-side.
   const token = await auth.createCustomToken(address);
 
-  // Send the token to the client to sign in with.
+  // Send the token to the client-side.
   return res.status(200).json({ token });
 }
 ```

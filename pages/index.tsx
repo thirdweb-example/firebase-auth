@@ -1,4 +1,9 @@
-import { ConnectWallet, useAddress, useSDK } from "@thirdweb-dev/react";
+import {
+  ConnectWallet,
+  useAddress,
+  useAuth,
+  useSDK,
+} from "@thirdweb-dev/react";
 import { signInWithCustomToken, signOut } from "firebase/auth";
 import React from "react";
 import initializeFirebaseClient from "../lib/initFirebase";
@@ -8,15 +13,15 @@ import useFirebaseUser from "../lib/useFirebaseUser";
 import useFirebaseDocument from "../lib/useFirebaseUserDocument";
 
 export default function Login() {
+  const thirdwebAuth = useAuth();
   const address = useAddress();
-  const sdk = useSDK();
   const { auth, db } = initializeFirebaseClient();
   const { user, isLoading: loadingAuth } = useFirebaseUser();
   const { document, isLoading: loadingDocument } = useFirebaseDocument();
 
   async function signIn() {
     // Use the same address as the one specified in _app.tsx.
-    const payload = await sdk?.auth.login("example.com");
+    const payload = await thirdwebAuth?.login();
 
     // Make a request to the API with the payload.
     const res = await fetch("/api/auth/login", {
@@ -43,7 +48,7 @@ export default function Login() {
             // User now has permission to update their own document outlined in the Firestore rules.
             setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
           }
-        });               
+        });
       })
       .catch((error) => {
         console.error(error);
@@ -80,7 +85,7 @@ export default function Login() {
           <div>
             {!user ? (
               <button onClick={() => signIn()} className={styles.mainButton}>
-                Sign in with Ethereum
+                Sign in with Wallet
               </button>
             ) : (
               <button
