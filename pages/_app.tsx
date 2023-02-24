@@ -6,7 +6,6 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThirdwebProvider
       authConfig={{
-        // Set this to your domain to prevent signature malleability attacks.
         domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN as string,
       }}
     >

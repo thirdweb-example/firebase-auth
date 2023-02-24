@@ -18,7 +18,7 @@ This template shows you can use thirdweb Auth as a custom authentication provide
 - [Create a Firebase project](https://firebase.google.com/docs/web/setup#create-project)
 - [Register your Firebase app](https://firebase.google.com/docs/web/setup#register-app)
 - [Create and export a service account as a JSON file](https://firebase.google.com/docs/admin/setup#initialize-sdk)
-- Make sure to enable Firebase Authentication as we'll be using the [Custom Authentication](https://firebase.google.com/docs/auth/web/custom-auth?hl=en&authuser=0) method and create a [Cloud Firestore](https://firebase.google.com/docs/firestore/quickstart?hl=en&authuser=0) database within your project
+- Make sure to enable Firebase Authentication as we'll be using the [Custom Authentication](https://firebase.google.com/docs/auth/web/custom-auth?hl=en&authuser=0) method and create a [Cloud Firestore](https://firebase.google.com/docs/firestore/quickstart?hl=en&authuser=0) database within your project.
 
 ## Set Up
 
@@ -141,39 +141,40 @@ The `signIn` function:
 
 ```tsx title="pages/index.tsx"
 // Note: This function lives inside the Login component above.
-async function signIn() {
+const signIn = async () => {
   // Use the same address as the one specified in _app.tsx.
-  const payload = await thirdwebAuth.login("example.com");
+  const payload = await thirdwebAuth?.login();
 
-  // Make a request to the API with the payload.
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ payload }),
-  });
-
-  // Get the returned JWT token to use it to sign in with
-  const { token } = await res.json();
-
-  // Sign in with the token (creates a Firebase user)
-  signInWithCustomToken(auth, token)
-    .then((userCredential) => {
-      // On success, we have access to the user object.
-      const user = userCredential.user;
-
-      // If this is a new user, we create a new document in the database.
-      const usersRef = doc(db, "users", user.uid!);
-      if (!usersRef) {
-        // User now has permission to update their own document outlined in the Firestore rules.
-        setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
-      }
-    })
-    .catch((error) => {
-      console.error(error);
+  try {
+    // Make a request to the API with the payload.
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ payload }),
     });
-}
+
+    // Get the returned JWT token to use it to sign in with
+    const { token } = await res.json();
+
+    // Sign in with the token.
+    const userCredential = await signInWithCustomToken(auth, token);
+    // On success, we have access to the user object.
+    const user = userCredential.user;
+
+    // If this is a new user, we create a new document in the database.
+    const usersRef = doc(db, "users", user.uid!);
+    const userDoc = await getDoc(usersRef);
+
+    if (!userDoc.exists()) {
+      // User now has permission to update their own document outlined in the Firestore rules.
+      setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
 ```
 
 In this function, you'll notice we're calling the `/api/auth/login` endpoint to get a
@@ -196,7 +197,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { verifyLogin } from "@thirdweb-dev/auth/evm";
 import initializeFirebaseServer from "../../../lib/initFirebaseAdmin";
 
-export default async function login(req: NextApiRequest, res: NextApiResponse) {
+const login = async (req: NextApiRequest, res: NextApiResponse) => {
   // Grab the login payload the user sent us with their request.
   const payload = req.body.payload;
 
@@ -216,7 +217,9 @@ export default async function login(req: NextApiRequest, res: NextApiResponse) {
 
   // Send the token to the client-side.
   return res.status(200).json({ token });
-}
+};
+
+export default login;
 ```
 
 You'll now be able to use Firebase Authentication to authenticate users with their wallets!

@@ -6,6 +6,7 @@ import { getDoc, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import styles from "../styles/Home.module.css";
 import useFirebaseUser from "../lib/useFirebaseUser";
 import useFirebaseDocument from "../lib/useFirebaseUserDocument";
+import Image from "next/image";
 
 export default function Login() {
   const thirdwebAuth = useAuth();
@@ -14,55 +15,58 @@ export default function Login() {
   const { user, isLoading: loadingAuth } = useFirebaseUser();
   const { document, isLoading: loadingDocument } = useFirebaseDocument();
 
-  async function signIn() {
+  const signIn = async () => {
     // Use the same address as the one specified in _app.tsx.
     const payload = await thirdwebAuth?.login();
 
-    // Make a request to the API with the payload.
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ payload }),
-    });
-
-    // Get the returned JWT token to use it to sign in with
-    const { token } = await res.json();
-
-    // Sign in with the token.
-    signInWithCustomToken(auth, token)
-      .then((userCredential) => {
-        // On success, we have access to the user object.
-        const user = userCredential.user;
-
-        // If this is a new user, we create a new document in the database.
-        const usersRef = doc(db, "users", user.uid!);
-        getDoc(usersRef).then((doc) => {
-          if (!doc.exists()) {
-            // User now has permission to update their own document outlined in the Firestore rules.
-            setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
-          }
-        });
-      })
-      .catch((error) => {
-        console.error(error);
+    try {
+      // Make a request to the API with the payload.
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ payload }),
       });
-  }
+
+      // Get the returned JWT token to use it to sign in with
+      const { token } = await res.json();
+
+      // Sign in with the token.
+      const userCredential = await signInWithCustomToken(auth, token);
+      // On success, we have access to the user object.
+      const user = userCredential.user;
+
+      // If this is a new user, we create a new document in the database.
+      const usersRef = doc(db, "users", user.uid!);
+      const userDoc = await getDoc(usersRef);
+
+      if (!userDoc.exists()) {
+        // User now has permission to update their own document outlined in the Firestore rules.
+        setDoc(usersRef, { createdAt: serverTimestamp() }, { merge: true });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div className={styles.container}>
       <div>
         <div className={styles.iconContainer}>
-          <img
+          <Image
             className={styles.icon}
-            src={"/thirdweb.png"}
+            src="/thirdweb.png"
             alt="thirdweb icon"
+            width={100}
+            height={100}
           />
-          <img
+          <Image
             className={styles.icon}
-            src={"/firebase.png"}
+            src="/firebase.png"
             alt="firebase icon"
+            width={100}
+            height={100}
           />
         </div>
 
@@ -106,7 +110,7 @@ export default function Login() {
             </p>
           </div>
         ) : (
-          <ConnectWallet />
+          <ConnectWallet className={styles.connectBtn} />
         )}
       </div>
     </div>
