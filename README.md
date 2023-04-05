@@ -25,7 +25,7 @@ This template shows you can use thirdweb Auth as a custom authentication provide
 To begin with, let's create a new Next.js project with the SDK configured:
 
 ```bash
-npx thirdweb create --app --next --ts
+npx thirdweb create app --next --ts
 ```
 
 From within the created directory, we need to install `@thirdweb-dev/auth`, `firebase` and `firebase-admin`:
@@ -78,19 +78,18 @@ Inside the `pages/_app.tsx` file, configure the `authConfig` option:
 
 ```ts title="pages/_app.tsx"
 import type { AppProps } from "next/app";
-import { ChainId, ThirdwebProvider } from "@thirdweb-dev/react";
+import { ThirdwebProvider } from "@thirdweb-dev/react";
 
-// This is the chainId your dApp will work on.
-const activeChainId = ChainId.Mumbai;
+// This is the chain your dApp will work on.
+const activeChain = "mumbai";
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThirdwebProvider
-      desiredChainId={activeChainId}
       authConfig={{
-        // Set this to your domain to prevent signature malleability attacks.
-        domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN,
+        domain: process.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN as string,
       }}
+      activeChain={activeChain}
     >
       <Component {...pageProps} />
     </ThirdwebProvider>
